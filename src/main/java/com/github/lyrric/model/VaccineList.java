@@ -76,4 +76,16 @@ public class VaccineList {
     public void setVaccineName(String vaccineName) {
         this.vaccineName = vaccineName;
     }
+
+    @Override
+    public String toString() {
+        return "VaccineList{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", address='" + address + '\'' +
+                ", vaccineCode='" + vaccineCode + '\'' +
+                ", vaccineName='" + vaccineName + '\'' +
+                ", startTime='" + startTime + '\'' +
+                '}';
+    }
 }

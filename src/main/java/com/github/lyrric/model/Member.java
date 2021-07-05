@@ -43,4 +43,14 @@ public class Member {
     public void setIdCardNo(String idCardNo) {
         this.idCardNo = idCardNo;
     }
+
+
+    @Override
+    public String toString() {
+        return "Member{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", idCardNo='" + idCardNo + '\'' +
+                '}';
+    }
 }

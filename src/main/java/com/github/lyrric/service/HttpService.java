@@ -3,10 +3,12 @@ package com.github.lyrric.service;
 import com.alibaba.fastjson.JSONObject;
 import com.github.lyrric.conf.Config;
 import com.github.lyrric.model.*;
+import com.github.lyrric.util.HttpConnectionPoolUtil;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -54,6 +56,7 @@ public class HttpService {
         //后面替换成接口返回的st
         //目前发现接口返回的st就是当前时间，后面可能会固定为一个加密参数
         long st = System.currentTimeMillis();
+        Long st1 = getSt(seckillId);
         Header header = new BasicHeader("ecc-hs", eccHs(seckillId, st));
         return get(path, params, header);
     }
@@ -87,17 +90,20 @@ public class HttpService {
         return  JSONObject.parseArray(json, Member.class);
     }
     /***
-     * 获取加密参数st
+     * 获取加密参数st   疫苗库存
      * @param vaccineId 疫苗ID
      */
-    public String getSt(String vaccineId) throws IOException {
+    public Long getSt(String vaccineId) throws IOException {
         String path = baseUrl+"/seckill/seckill/checkstock2.do";
         Map<String, String> params = new HashMap<>();
         params.put("id", vaccineId);
         String json =  get(path, params, null);
         JSONObject jsonObject = JSONObject.parseObject(json);
-        return jsonObject.getJSONObject("data").getString("st");
+//        return jsonObject.getJSONObject("data").getString("st");
+        // stock
+        return jsonObject.getLong("st");
     }
+
 
     private void hasAvailableConfig() throws BusinessException {
         if(StringUtils.isEmpty(Config.cookies)){
@@ -124,13 +130,24 @@ public class HttpService {
         }
         get.setHeaders(headers.toArray(new Header[0]));
         CloseableHttpClient httpClient = HttpClients.createDefault();
-        HttpEntity httpEntity = httpClient.execute(get).getEntity();
-        String json =  EntityUtils.toString(httpEntity, StandardCharsets.UTF_8);
-        JSONObject jsonObject = JSONObject.parseObject(json);
-        if("0000".equals(jsonObject.get("code"))){
-            return jsonObject.getString("data");
-        }else{
-            throw new BusinessException(jsonObject.getString("code"), jsonObject.getString("msg"));
+//        CloseableHttpClient httpClient = HttpConnectionPoolUtil.getHttpClient("https://miaomiao.scmttec.com:443");
+//        System.out.println(httpClient);
+        CloseableHttpResponse res = httpClient.execute(get);
+        int statusCode = res.getStatusLine().getStatusCode();
+        if(200==statusCode){
+            HttpEntity httpEntity = res.getEntity();
+            String json =  EntityUtils.toString(httpEntity, StandardCharsets.UTF_8);
+            logger.info(json);
+//        httpClient.close();
+            JSONObject jsonObject = JSONObject.parseObject(json);
+            if("0000".equals(jsonObject.get("code"))){
+                //orderID = res.data.data
+                return jsonObject.getString("data");
+            }else{
+                throw new BusinessException(jsonObject.getString("code"), jsonObject.getString("msg"));
+            }
+        }else {
+            return "服务端错误";
         }
     }
 
@@ -148,7 +165,8 @@ public class HttpService {
     private String eccHs(String seckillId, Long st){
         String salt = "ux$ad70*b";
         final Integer memberId = Config.memberId;
-        String md5 = DigestUtils.md5Hex(seckillId + st + memberId);
+        //String md5 = DigestUtils.md5Hex(seckillId + st + memberId);
+        String md5 = DigestUtils.md5Hex(seckillId + memberId + st);
         return DigestUtils.md5Hex(md5 + salt);
     }
 
@@ -200,7 +218,7 @@ public class HttpService {
      * @throws IOException
      * @throws BusinessException
      */
-    public void subDayTime(String vaccineId, String orderId, String day, String wid) throws IOException, BusinessException {
+    public Boolean subDayTime(String vaccineId, String orderId, String day, String wid) throws IOException, BusinessException {
         String path = baseUrl+"/seckill/seckill/submitDateTime.do";
         Map<String, String> params = new HashMap<>();
         params.put("id", vaccineId);
@@ -209,5 +227,9 @@ public class HttpService {
         params.put("wid", wid);
         String json =  get(path, params, null);
         logger.info("提交接种时间，返回数据: {}", json);
+        if("服务端错误".equals(json)){
+            return false;
+        }
+        return true;
     }
 }

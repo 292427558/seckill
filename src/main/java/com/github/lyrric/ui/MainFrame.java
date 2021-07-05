@@ -167,6 +167,7 @@ public class MainFrame extends JFrame {
 
     private void refreshVaccines(){
         try {
+//            vaccinesTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
             vaccines = service.getVaccines();
             //清除表格数据
             //通知模型更新
@@ -177,7 +178,6 @@ public class MainFrame extends JFrame {
                 for (VaccineList t : vaccines) {
                     String[] item = { t.getId().toString(), t.getVaccineName(),t.getName() ,t.getStartTime()};
                     tableModel.addRow(item);
-
                 }
             }
         } catch (IOException e) {
@@ -198,23 +198,28 @@ public class MainFrame extends JFrame {
         }
 
         int selectedRow = vaccinesTable.getSelectedRow();
-        Integer id = vaccines.get(selectedRow).getId();
-        String startTime = vaccines.get(selectedRow).getStartTime();
-        new Thread(()->{
-            try {
-                setCookieBtn.setEnabled(false);
-                startBtn.setEnabled(false);
-                setMemberBtn.setEnabled(false);
-                service.startSecKill(id, startTime, this);
-            } catch (ParseException | InterruptedException e) {
-                appendMsg("解析开始时间失败");
-                e.printStackTrace();
-            }finally {
-                setCookieBtn.setEnabled(true);
-                startBtn.setEnabled(true);
-                setMemberBtn.setEnabled(true);
-            }
-        }).start();
+        int[] selectedRows = vaccinesTable.getSelectedRows();
+
+        for (int row : selectedRows) {
+            Integer id = vaccines.get(row).getId();
+            String startTime = vaccines.get(row).getStartTime();
+            new Thread(()->{
+                try {
+                    setCookieBtn.setEnabled(false);
+                    startBtn.setEnabled(false);
+                    setMemberBtn.setEnabled(false);
+                    SecKillService.getSuccessMap().put(id.toString(),false);
+                    service.startSecKill(id, startTime, this);
+                } catch (ParseException | InterruptedException e) {
+                    appendMsg("解析开始时间失败");
+                    e.printStackTrace();
+                }finally {
+                    setCookieBtn.setEnabled(true);
+                    startBtn.setEnabled(true);
+                    setMemberBtn.setEnabled(true);
+                }
+            }).start();
+        }
 
     }
 

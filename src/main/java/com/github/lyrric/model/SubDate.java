@@ -29,4 +29,12 @@ public class SubDate {
     public void setTotal(String total) {
         this.total = total;
     }
+
+    @Override
+    public String toString() {
+        return "SubDate{" +
+                "day='" + day + '\'' +
+                ", total='" + total + '\'' +
+                '}';
+    }
 }
