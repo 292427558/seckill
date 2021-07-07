@@ -208,7 +208,6 @@ public class MainFrame extends JFrame {
                     setCookieBtn.setEnabled(false);
                     startBtn.setEnabled(false);
                     setMemberBtn.setEnabled(false);
-                    SecKillService.getSuccessMap().put(id.toString(),false);
                     service.startSecKill(id, startTime, this);
                 } catch (ParseException | InterruptedException e) {
                     appendMsg("解析开始时间失败");
