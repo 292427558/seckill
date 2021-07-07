@@ -55,10 +55,22 @@ public class HttpService {
         params.put("idCardNo", idCard);
         //后面替换成接口返回的st
         //目前发现接口返回的st就是当前时间，后面可能会固定为一个加密参数
-        long st = System.currentTimeMillis();
-        //Long st1 = getSt(seckillId);
-        Header header = new BasicHeader("ecc-hs", eccHs(seckillId, st));
-        return get(path, params, header);
+        //long st = System.currentTimeMillis();
+        String path2 = baseUrl+"/seckill/seckill/checkstock2.do";
+        Map<String, String> params2 = new HashMap<>();
+        params.put("id", seckillId);
+        String json =  get(path, params2, null);
+        JSONObject jsonObject = JSONObject.parseObject(json);
+//        return jsonObject.getJSONObject("data").getString("st");
+        // stock
+        //{"code":"0000","data":{"stock":0,"st":1625619717253},"ok":true,"notOk":false}
+        Long st = jsonObject.getLong("st");
+        Long stock = jsonObject.getLong("stock");
+        if(stock>0){
+            Header header = new BasicHeader("ecc-hs", eccHs(seckillId, st));
+            return get(path, params, header);
+        }
+        return null;
         //{"code":"9999","msg":"很抱歉 没抢到","ok":false,"notOk":true}
         //{"code":"3101","msg":"排队人数较多,请耐心等待!","notOk":true,"ok":false}
     }

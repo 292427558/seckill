@@ -12,6 +12,8 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * mode class
@@ -29,6 +31,10 @@ public class MsTask implements Runnable {
     private long startDate;
     HttpService httpService;
 
+    AtomicReference<String> orderIdAtomic = new AtomicReference<>(null);
+
+    public static AtomicBoolean success = new AtomicBoolean(false);
+
     public MsTask(String vaccineId, long startDate, HttpService httpService) {
         this.vaccineId = vaccineId;
         this.startDate = startDate;
@@ -37,26 +43,31 @@ public class MsTask implements Runnable {
 
     @Override
     public void run() {
+
         long id = Thread.currentThread().getId();
         do {
             try {
-                //1.直接秒杀、获取秒杀资格
-                if(SecKillService.getSuccessMap().get(vaccineId)){
+
+                if(orderIdAtomic.get()==null){
+                    logger.info("Thread ID：{}，发送请求", id);
+                    String json = httpService.secKill(vaccineId, "1", Config.memberId.toString(), Config.idCard);
+                    if(json==null){
+                        continue;
+                    }
+                    JSONObject jsonObject = JSONObject.parseObject(json);
+                    //获取到orderid
+                    logger.info("Thread ID：{}，获取到秒杀成功返回参数json: {}", id,json);
+                    String orderId = jsonObject.getString("data");
+                    orderIdAtomic.set(orderId);
+
+                    logger.info("Thread ID：{}，获取秒杀资格成功：orderid{}", id,orderIdAtomic.get());
+                }
+                if(!success.get()){
                     return;
                 }
-                logger.info("Thread ID：{}，发送请求", id);
-                String json = httpService.secKill(vaccineId, "1", Config.memberId.toString(), Config.idCard);
-                JSONObject jsonObject = JSONObject.parseObject(json);
-                //获取到orderid
-                String orderId = jsonObject.getString("data");
-                logger.info("Thread ID：{}，订单id：{}",id,orderId);
-                if(SecKillService.getSuccessMap().get(vaccineId)){
-                    return;
-                }
-                if(orderId!=null){
-                    logger.info("Thread ID：{}，获取秒杀资格成功：orderid{}", id,orderId);
-                    List<SubDate> skSubDays = httpService.getSkSubDays(vaccineId, orderId);
-                    if(SecKillService.getSuccessMap().get(vaccineId)){
+                if(orderIdAtomic.get()!=null){
+                    List<SubDate> skSubDays = httpService.getSkSubDays(vaccineId, orderIdAtomic.get());
+                    if(!success.get()){
                         return;
                     }
                     logger.info("预约日期： "+skSubDays);
@@ -67,8 +78,8 @@ public class MsTask implements Runnable {
                             continue;
                         }
                         //获取预约时间段
-                        List<SubDateTime> skSubDayTime = httpService.getSkSubDayTime(vaccineId, orderId, day);
-                        if(SecKillService.getSuccessMap().get(vaccineId)){
+                        List<SubDateTime> skSubDayTime = httpService.getSkSubDayTime(vaccineId, orderIdAtomic.get(), day);
+                        if(!success.get()){
                             return;
                         }
                         logger.info("Thread ID：{}，{} 预约时间段：{}",id,day,skSubDays);
@@ -79,10 +90,10 @@ public class MsTask implements Runnable {
                                 continue;
                             }
                             //提交预约
-                            Boolean aBoolean = httpService.subDayTime(vaccineId, orderId, day, wid);
+                            Boolean aBoolean = httpService.subDayTime(vaccineId, orderIdAtomic.get(), day, wid);
                             if(aBoolean){
                                 logger.info("Thread ID：{}，预约成功。。。",id);
-                                SecKillService.getSuccessMap().put(vaccineId,aBoolean);
+                                success.set(aBoolean);
                                 return;
                             }
                         }
@@ -90,10 +101,6 @@ public class MsTask implements Runnable {
                 }
             } catch (BusinessException e) {
                 logger.info("Thread ID: {}, 抢购失败: {}",Thread.currentThread().getId(), e.getErrMsg());
-                //如果离开始时间120秒后，或者已经成功抢到则不再继续
-                if(System.currentTimeMillis() > startDate+1000*60*2 ){
-                    return;
-                }
                 if("操作过于频繁,请稍后再试!".equals(e.getErrMsg()) && new Random().nextBoolean()){
                     try {
                         logger.error("Thread ID：{}，操作过于频繁",id);
@@ -105,7 +112,12 @@ public class MsTask implements Runnable {
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.warn("Thread ID: {}，未知异常", Thread.currentThread().getId());
+            }finally {
+                //如果离开始时间180秒后，或者已经成功抢到则不再继续
+                if(System.currentTimeMillis() > startDate+1000*60*3 ){
+                    return;
+                }
             }
-        } while (!SecKillService.getSuccessMap().get(vaccineId));
+        } while (!success.get());
     }
 }

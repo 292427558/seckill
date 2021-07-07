@@ -27,8 +27,6 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class SecKillService {
 
-    private static Map<String,Boolean> successMap = new HashMap<>();
-
     private HttpService httpService;
 
     private final Logger logger = LogManager.getLogger(SecKillService.class);
@@ -39,9 +37,6 @@ public class SecKillService {
         httpService = new HttpService();
     }
 
-    public static synchronized Map<String, Boolean> getSuccessMap() {
-        return successMap;
-    }
 
     /**
      * 多线程秒杀开启
@@ -105,7 +100,7 @@ public class SecKillService {
         //等待线程结束
         try {
             service.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
-            if(successMap.get(vaccineId)){
+            if(MsTask.success.get()){
                 if(mainFrame != null){
                     mainFrame.appendMsg("抢购成功，请登录约苗小程序查看");
                 }
