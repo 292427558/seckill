@@ -56,9 +56,11 @@ public class HttpService {
         //后面替换成接口返回的st
         //目前发现接口返回的st就是当前时间，后面可能会固定为一个加密参数
         long st = System.currentTimeMillis();
-        Long st1 = getSt(seckillId);
+        //Long st1 = getSt(seckillId);
         Header header = new BasicHeader("ecc-hs", eccHs(seckillId, st));
         return get(path, params, header);
+        //{"code":"9999","msg":"很抱歉 没抢到","ok":false,"notOk":true}
+        //{"code":"3101","msg":"排队人数较多,请耐心等待!","notOk":true,"ok":false}
     }
 
     /**
@@ -101,6 +103,7 @@ public class HttpService {
         JSONObject jsonObject = JSONObject.parseObject(json);
 //        return jsonObject.getJSONObject("data").getString("st");
         // stock
+        //{"code":"0000","data":{"stock":0,"st":1625619717253},"ok":true,"notOk":false}
         return jsonObject.getLong("st");
     }
 
