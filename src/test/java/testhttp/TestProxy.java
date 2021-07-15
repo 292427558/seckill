@@ -1,33 +1,21 @@
 package testhttp;
 
 import com.github.lyrric.conf.Config;
-import com.github.lyrric.model.Member;
-import com.github.lyrric.model.SubDate;
-import com.github.lyrric.model.VaccineList;
 import com.github.lyrric.service.HttpService;
-import com.github.lyrric.util.HttpConnectionPoolUtil;
-import com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_OUTPeer;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.junit.Before;
 
-import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
  * mode class
  *
  * @Author LiuJun
- * @Date 2021/5/21 10:43
+ * @Date 2021/7/15 16:54
  */
 
-public class Test {
+public class TestProxy {
 
-    HttpService httpService;
-
-    @Before
-    public void before(){
-        httpService = new HttpService();
+    public static void main(String[] args) {
+        HttpService httpService = new HttpService();
         Config.cookies="_xxhm_=%7B%22id%22%3A11179755%2C%22mobile%22%3A%2215680830558%22%2C%22nickName%22%3A%22%E8%8B%A6%E5%92%96%E5%95%A1%22%2C%22headerImg%22%3A%22http%3A%2F%2Fthirdwx.qlogo.cn%2Fmmopen%2FxjC97SLpMq3dWa0DBnBZpdnDSKu7ZD6JBklc0qpCI6wiascHkcT2VLFNFL2OgXmBiaoZfj5twFRMn6hGPfQ7rRVysTNZeiblcXz%2F132%22%2C%22regionCode%22%3A%22510124%22%2C%22name%22%3A%22%E4%BB%98*%22%2C%22uFrom%22%3A%22cdbdbsy%22%2C%22wxSubscribed%22%3A1%2C%22birthday%22%3A%221997-12-09+00%3A00%3A00%22%2C%22sex%22%3A2%2C%22hasPassword%22%3Afalse%2C%22birthdayStr%22%3A%221997-12-09%22%7D; _xzkj_=wxapptoken:10:6d28b1533d9529787d6511f95c8d8ddb_50c3dffe433d98f1eeccf280744c8f2e; 3e6d=fc4cbd977fd9d9c24b; tgw_l7_route=8f0880cd45f76c4b66f7583f9b73aa43";
         Config.tk="wxapptoken:10:6d28b1533d9529787d6511f95c8d8ddb_50c3dffe433d98f1eeccf280744c8f2e";
         Config.memberName="付柳";
@@ -35,30 +23,9 @@ public class Test {
         Config.idCard="513701199712093224";
         Config.regionCode="5101";
 
-    }
-
-    @org.junit.Test
-    //获取疫苗信息
-    public void test() throws IOException {
-        List<VaccineList> vaccineList = httpService.getVaccineList();
-        System.out.println(vaccineList);
-    }
-
-
-
-    @org.junit.Test
-    //获取接种人
-    public void test2() throws IOException {
-        List<Member> members = httpService.getMembers();
-        System.out.println(members);
-    }
-
-    @org.junit.Test
-    //服务器时间  约1秒4次请求 就会限流
-    public void test4() throws IOException, InterruptedException {
-
         System.setProperty("proxyHost", "127.0.0.1");
         System.setProperty("proxyPort", "10809");
+
 //        System.setProperty("javax.net.ssl.trustStore", "c:/keystore/fiddler_keystore.jks");
 //        System.setProperty("javax.net.ssl.trustStorePassword", "abc123456");
         long start = System.currentTimeMillis();
@@ -76,21 +43,4 @@ public class Test {
         long end = System.currentTimeMillis();
         System.out.println("时间:"+(end-start));
     }
-
-    @org.junit.Test
-    //秒杀
-    public void test3() throws IOException {
-        String s = httpService.secKill("978", "1", Config.memberId + "", Config.idCard);
-        System.out.println(s);
-    }
-
-    @org.junit.Test
-    //获取日期
-    public void test5() throws IOException {
-        List<SubDate> skSubDays = httpService.getSkSubDays("978", "231");
-        System.out.println(skSubDays);
-    }
-
-
-
 }

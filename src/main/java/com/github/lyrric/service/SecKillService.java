@@ -49,24 +49,38 @@ public class SecKillService {
         //AtomicReference<String> orderId = new AtomicReference<>(null);
         MsTask task = new MsTask(vaccineId.toString(), startDate, httpService);
         long now = System.currentTimeMillis();
-        if(now + 2000 < startDate){
-            logger.info("还未到开始时间，等待中......");
-            Thread.sleep(startDate-now-2000);
+        try {
+            //先执行一次其他接口  第一次请求 连接时间可能会 稍长
+            List<VaccineList> vaccineList = httpService.getVaccineList();
+
+            //服务器时间 已预估了接口请求时间
+            Long st = httpService.getSt(vaccineId.toString());
+            //-137 负数说明 服务器时间快  正数说明服务器时间慢
+            long diff = now - st;
+            //修正开始时间
+            startDate=startDate+diff;
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+
+//        if(now + 2000 < startDate){
+//            logger.info("还未到开始时间，等待中......");
+//            Thread.sleep(startDate-now-2000);
+//        }
         //如何保证能在秒杀时间点瞬间并发？
         //提前2000毫秒开始秒杀
-        logger.info("###########提前2秒 开始秒杀###########");
-        for (int i = 0; i < 2; i++) {
-            service.submit(task);
-        }
+//        logger.info("###########提前2秒 开始秒杀###########");
+//        for (int i = 0; i < 2; i++) {
+//            service.submit(task);
+//        }
         //提前1000毫秒开始秒杀
-        do {
-            now = System.currentTimeMillis();
-        }while (now + 1000 < startDate);
-        logger.info("###########第一波 开始秒杀###########");
-        for (int i = 0; i < 2; i++) {
-            service.submit(task);
-        }
+//        do {
+//            now = System.currentTimeMillis();
+//        }while (now + 1000 < startDate);
+//        logger.info("###########第一波 开始秒杀###########");
+//        for (int i = 0; i < 2; i++) {
+//            service.submit(task);
+//        }
         //提前500毫秒开始秒杀
         do {
             now = System.currentTimeMillis();
@@ -88,7 +102,7 @@ public class SecKillService {
             now = System.currentTimeMillis();
         }while (now + 20 < startDate);
         logger.info("###########第四波 开始秒杀###########");
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 5; i++) {
             service.submit(task);
         }
 

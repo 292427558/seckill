@@ -16,6 +16,7 @@ import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.http.*;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -35,6 +36,7 @@ public class HttpService {
 
     private final Logger logger = LogManager.getLogger(HttpService.class);
 
+    private HttpServicePool httpService =new HttpServicePool();
 
     /***
      * 获取秒杀资格
@@ -59,7 +61,7 @@ public class HttpService {
         String path2 = baseUrl+"/seckill/seckill/checkstock2.do";
         Map<String, String> params2 = new HashMap<>();
         params.put("id", seckillId);
-        String json =  get(path, params2, null);
+        String json =  get2(path2, params2, null);
         JSONObject jsonObject = JSONObject.parseObject(json);
 //        return jsonObject.getJSONObject("data").getString("st");
         // stock
@@ -68,7 +70,7 @@ public class HttpService {
         Long stock = jsonObject.getLong("stock");
         if(stock>0){
             Header header = new BasicHeader("ecc-hs", eccHs(seckillId, st));
-            return get(path, params, header);
+            return get2(path, params, header);
         }
         return null;
         //{"code":"9999","msg":"很抱歉 没抢到","ok":false,"notOk":true}
@@ -89,7 +91,7 @@ public class HttpService {
         param.put("limit", "100");
         //这个应该是成都的行政区划前四位
         param.put("regionCode", Config.regionCode);
-        String json = get(path, param, null);
+        String json = get2(path, param, null);
         return JSONObject.parseArray(json).toJavaList(VaccineList.class);
     }
 
@@ -100,10 +102,10 @@ public class HttpService {
      */
     public List<Member> getMembers() throws IOException, BusinessException {
         String path = baseUrl + "/seckill/linkman/findByUserId.do";
-        String json = get(path, null, null);
+        String json = get2(path, null, null);
         return  JSONObject.parseArray(json, Member.class);
     }
-    /***
+    /***只用来判断服务器时间
      * 获取加密参数st   疫苗库存
      * @param vaccineId 疫苗ID
      */
@@ -111,18 +113,51 @@ public class HttpService {
         String path = baseUrl+"/seckill/seckill/checkstock2.do";
         Map<String, String> params = new HashMap<>();
         params.put("id", vaccineId);
-        String json =  get(path, params, null);
+        long str = System.currentTimeMillis();
+        String json =  get2(path, params, null);
+        long end = System.currentTimeMillis();
+        logger.info("接口请求用时：{}",(end-str));
         JSONObject jsonObject = JSONObject.parseObject(json);
 //        return jsonObject.getJSONObject("data").getString("st");
         // stock
         //{"code":"0000","data":{"stock":0,"st":1625619717253},"ok":true,"notOk":false}
-        return jsonObject.getLong("st");
+        return (jsonObject.getLong("st")-(end-str));
     }
 
 
     private void hasAvailableConfig() throws BusinessException {
         if(StringUtils.isEmpty(Config.cookies)){
             throw new BusinessException("0", "请先配置cookie");
+        }
+    }
+
+    private String get2(String path, Map<String, String> params, Header extHeader) throws IOException, BusinessException {
+        if(params != null && params.size() !=0){
+            StringBuilder paramStr = new StringBuilder("?");
+            params.forEach((key,value)->{
+                paramStr.append(key).append("=").append(value).append("&");
+            });
+            String t = paramStr.toString();
+            if(t.endsWith("&")){
+                t = t.substring(0, t.length()-1);
+            }
+            path+=t;
+        }
+        org.springframework.http.HttpEntity<Object> httpEntity = new org.springframework.http.HttpEntity<>(getCommonHeade2());
+        ResponseEntity<String> entity = httpService.exchange(path, HttpMethod.GET, httpEntity, String.class);
+        HttpStatus statusCode = entity.getStatusCode();
+        if(statusCode.is2xxSuccessful()){
+            String json = entity.getBody();
+            logger.info(json);
+            JSONObject jsonObject = JSONObject.parseObject(json);
+            if("0000".equals(jsonObject.get("code"))){
+                //orderID = res.data.data
+                return jsonObject.getString("data");
+            }else{
+                throw new BusinessException(jsonObject.getString("code"), jsonObject.getString("msg"));
+            }
+        }else {
+            return "服务端错误";
         }
     }
 
@@ -144,9 +179,8 @@ public class HttpService {
             headers.add(extHeader);
         }
         get.setHeaders(headers.toArray(new Header[0]));
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-//        CloseableHttpClient httpClient = HttpConnectionPoolUtil.getHttpClient("https://miaomiao.scmttec.com:443");
-//        System.out.println(httpClient);
+        CloseableHttpClient httpClient = HttpClients.createDefault();//用时1.1秒
+
         CloseableHttpResponse res = httpClient.execute(get);
         int statusCode = res.getStatusLine().getStatusCode();
         if(200==statusCode){
@@ -177,6 +211,17 @@ public class HttpService {
         return headers;
     }
 
+    private HttpHeaders getCommonHeade2(){
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Cookie",Config.cookies);
+        headers.add("User-Agent","Mozilla/5.0 (Linux; Android 5.1.1; SM-N960F Build/JLS36C; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/74.0.3729.136 Mobile Safari/537.36 MMWEBID/1042 MicroMessenger/7.0.15.1680(0x27000F34) Process/appbrand0 WeChat/arm32 NetType/WIFI Language/zh_CN ABI/arm32");
+        headers.add("Referer","https://servicewechat.com/wxff8cad2e9bf18719/2/page-frame.html");
+        headers.add("tk",Config.tk);
+        headers.add("Accept","application/json, text/plain, */*");
+        headers.add("Host","miaomiao.scmttec.com");
+        return headers;
+    }
+
     private String eccHs(String seckillId, Long st){
         String salt = "ux$ad70*b";
         final Integer memberId = Config.memberId;
@@ -199,7 +244,7 @@ public class HttpService {
         Map<String, String> params = new HashMap<>();
         params.put("id", vaccineId);
         params.put("sid", orderId);
-        String json =  get(path, params, null);
+        String json =  get2(path, params, null);
         logger.info("日期格式:{}", json);
         return JSONObject.parseArray(json).toJavaList(SubDate.class);
     }
@@ -219,7 +264,7 @@ public class HttpService {
         params.put("id", vaccineId);
         params.put("sid", orderId);
         params.put("day", day);
-        String json = get(path, params, null);
+        String json = get2(path, params, null);
         System.out.println("根据选择的日期，获取的时间格式"+json);
         return JSONObject.parseArray(json).toJavaList(SubDateTime.class);
     }
@@ -240,7 +285,7 @@ public class HttpService {
         params.put("sid", orderId);
         params.put("day", day);
         params.put("wid", wid);
-        String json =  get(path, params, null);
+        String json =  get2(path, params, null);
         logger.info("提交接种时间，返回数据: {}", json);
         if("服务端错误".equals(json)){
             return false;
