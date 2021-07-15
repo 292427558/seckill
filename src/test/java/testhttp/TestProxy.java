@@ -23,8 +23,8 @@ public class TestProxy {
         Config.idCard="513701199712093224";
         Config.regionCode="5101";
 
-        System.setProperty("proxyHost", "127.0.0.1");
-        System.setProperty("proxyPort", "10809");
+//        System.setProperty("proxyHost", "127.0.0.1");
+//        System.setProperty("proxyPort", "10809");
 
 //        System.setProperty("javax.net.ssl.trustStore", "c:/keystore/fiddler_keystore.jks");
 //        System.setProperty("javax.net.ssl.trustStorePassword", "abc123456");
