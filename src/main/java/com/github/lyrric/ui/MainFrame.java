@@ -8,6 +8,9 @@ import com.github.lyrric.model.VaccineList;
 import com.github.lyrric.service.SecKillService;
 import com.github.lyrric.util.ParseUtil;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.web.client.HttpServerErrorException;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -24,6 +27,7 @@ import java.util.List;
  * @author wangxiaodong
  */
 public class MainFrame extends JFrame {
+    private final Logger logger = LogManager.getLogger(SecKillService.class);
 
     SecKillService service = new SecKillService();
     /**
@@ -185,6 +189,9 @@ public class MainFrame extends JFrame {
             appendMsg("未知错误");
         } catch (BusinessException e) {
             appendMsg("错误："+e.getErrMsg()+"，errCode"+e.getCode());
+        }catch (HttpServerErrorException e) {
+            e.printStackTrace();
+            logger.warn("Thread ID: {}，http异常 {}", Thread.currentThread().getId(),e.getMessage());
         }
     }
     private void start(){

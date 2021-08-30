@@ -9,6 +9,7 @@ import com.github.lyrric.service.HttpService;
 import com.github.lyrric.service.SecKillService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.web.client.HttpServerErrorException;
 
 import java.util.List;
 import java.util.Random;
@@ -109,9 +110,13 @@ public class MsTask implements Runnable {
                         ex.printStackTrace();
                     }
                 }
-            } catch (Exception e) {
+            }catch (HttpServerErrorException e) {
                 e.printStackTrace();
-                logger.warn("Thread ID: {}，未知异常", Thread.currentThread().getId());
+                logger.error("Thread ID: {}，http异常 {}", Thread.currentThread().getId(),e.getMessage());
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                logger.error("Thread ID: {}，未知异常", Thread.currentThread().getId());
             }finally {
                 //如果离开始时间180秒后，或者已经成功抢到则不再继续
                 if(System.currentTimeMillis() > startDate+1000*60*3 ){
