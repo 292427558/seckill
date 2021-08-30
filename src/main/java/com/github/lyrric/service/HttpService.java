@@ -60,7 +60,7 @@ public class HttpService {
         //long st = System.currentTimeMillis();
         String path2 = baseUrl+"/seckill/seckill/checkstock2.do";
         Map<String, String> params2 = new HashMap<>();
-        params.put("id", seckillId);
+        params2.put("id", seckillId);
         String json =  get2(path2, params2, null);
         JSONObject jsonObject = JSONObject.parseObject(json);
 //        return jsonObject.getJSONObject("data").getString("st");
@@ -144,6 +144,8 @@ public class HttpService {
             path+=t;
         }
         org.springframework.http.HttpEntity<Object> httpEntity = new org.springframework.http.HttpEntity<>(getCommonHeade2());
+        long id = Thread.currentThread().getId();
+        logger.info("Thread ID：{} 请求路径：{} 参数：{}",id,path,params);
         ResponseEntity<String> entity = httpService.exchange(path, HttpMethod.GET, httpEntity, String.class);
         HttpStatus statusCode = entity.getStatusCode();
         if(statusCode.is2xxSuccessful()){

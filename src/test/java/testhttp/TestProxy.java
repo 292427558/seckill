@@ -30,7 +30,7 @@ public class TestProxy {
 //        System.setProperty("javax.net.ssl.trustStorePassword", "abc123456");
         long start = System.currentTimeMillis();
         try {
-            for (int i = 0; i < 2; i++) {
+            for (int i = 0; i < 20; i++) {
                 System.out.println("第几次请求"+i);
                 Long st = httpService.getSt("1026");
                 long now = System.currentTimeMillis();
