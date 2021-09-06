@@ -10,7 +10,9 @@ import com.github.lyrric.service.SecKillService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 
+import java.net.SocketTimeoutException;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -111,8 +113,18 @@ public class MsTask implements Runnable {
                     }
                 }
             }catch (HttpServerErrorException e) {
-                e.printStackTrace();
+                //e.printStackTrace();
                 logger.error("Thread ID: {}，http异常 {}", Thread.currentThread().getId(),e.getMessage());
+            }catch (ResourceAccessException e) {
+                Throwable cause = e.getCause();
+                if(cause instanceof SocketTimeoutException){
+                    logger.error("Thread ID: {}，超时", Thread.currentThread().getId());
+                }else {
+                    e.printStackTrace();
+                    logger.error("Thread ID: {}，未知异常", Thread.currentThread().getId());
+                }
+            } catch (SocketTimeoutException e) {
+                logger.error("Thread ID: {}，超时", Thread.currentThread().getId());
             }
             catch (Exception e) {
                 e.printStackTrace();
